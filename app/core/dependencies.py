@@ -11,7 +11,9 @@ from app.db.session import get_session
 from app.models import User
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
+from app.repositories.workspace import WorkspaceRepository
 from app.services.auth import AuthService
+from app.services.workspace import WorkspaceService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session, scope="function")]
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -50,6 +52,17 @@ async def get_current_user(
 
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
+
+def get_workspace_repository(session: SessionDep) -> WorkspaceRepository:
+    return WorkspaceRepository(session)
+
+
+def get_workspace_service(
+    repository: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+) -> WorkspaceService:
+    return WorkspaceService(repository)
+
+
 __all__ = [
     "CurrentUserDep",
     "SessionDep",
@@ -62,6 +75,8 @@ __all__ = [
     "get_session",
     "get_settings",
     "get_user_repository",
+    "get_workspace_repository",
+    "get_workspace_service",
 ]
 
 get_db_session = get_session
