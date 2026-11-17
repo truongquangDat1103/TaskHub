@@ -220,7 +220,7 @@ def test_inactive_user_cannot_login_or_access_protected_endpoints(
     assert login_response.json() == {"detail": INACTIVE_USER}
 
     headers = {"Authorization": f"Bearer {token}"}
-    for path in ("/api/v1/users/me",):
+    for path in ("/api/v1/users/me", "/api/v1/tasks"):
         response = client.get(path, headers=headers)
         assert response.status_code == 401
         assert response.json() == {"detail": INACTIVE_USER}
