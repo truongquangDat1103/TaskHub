@@ -11,10 +11,16 @@ from app.core.messages import NOT_AUTHENTICATED, PERMISSION_DENIED
 from app.db.session import get_session
 from app.models import User
 from app.models.enums import UserRole
+from app.repositories.project import ProjectRepository
 from app.repositories.refresh_token import RefreshTokenRepository
+from app.repositories.task import TaskRepository
 from app.repositories.user import UserRepository
 from app.repositories.workspace import WorkspaceRepository
 from app.services.auth import AuthService
+from app.services.cache import TaskCacheService
+from app.services.email import EmailService, get_email_service
+from app.services.project import ProjectService
+from app.services.task import TaskService
 from app.services.user import UserService
 from app.services.workspace import WorkspaceService
 
@@ -90,6 +96,39 @@ def get_workspace_service(
     return WorkspaceService(repository)
 
 
+def get_task_cache_service() -> TaskCacheService:
+    return TaskCacheService(redis_client=None)
+
+
+def get_project_repository(session: SessionDep) -> ProjectRepository:
+    return ProjectRepository(session)
+
+
+def get_project_service(
+    repository: Annotated[ProjectRepository, Depends(get_project_repository)],
+    workspace_repository: Annotated[
+        WorkspaceRepository, Depends(get_workspace_repository)
+    ],
+    cache_service: Annotated[TaskCacheService, Depends(get_task_cache_service)],
+) -> ProjectService:
+    return ProjectService(repository, workspace_repository, cache_service)
+
+
+def get_task_repository(session: SessionDep) -> TaskRepository:
+    return TaskRepository(session)
+
+
+def get_task_service(
+    repository: Annotated[TaskRepository, Depends(get_task_repository)],
+    workspace_repository: Annotated[
+        WorkspaceRepository, Depends(get_workspace_repository)
+    ],
+    cache_service: Annotated[TaskCacheService, Depends(get_task_cache_service)],
+    email_service: Annotated[EmailService, Depends(get_email_service)],
+) -> TaskService:
+    return TaskService(repository, workspace_repository, cache_service, email_service)
+
+
 __all__ = [
     "AdminUserDep",
     "AuthServiceDep",
@@ -101,9 +140,15 @@ __all__ = [
     "get_auth_service",
     "get_current_user",
     "get_db_session",
+    "get_email_service",
+    "get_project_repository",
+    "get_project_service",
     "get_refresh_token_repository",
     "get_session",
     "get_settings",
+    "get_task_cache_service",
+    "get_task_repository",
+    "get_task_service",
     "get_user_repository",
     "get_user_service",
     "get_workspace_repository",
