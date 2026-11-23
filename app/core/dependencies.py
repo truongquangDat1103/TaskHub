@@ -3,11 +3,15 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AuthenticationException, ForbiddenException
-from app.core.messages import NOT_AUTHENTICATED, PERMISSION_DENIED
+from app.core.messages import (
+    NOT_AUTHENTICATED,
+    PERMISSION_DENIED,
+)
 from app.db.session import get_session
 from app.models import User
 from app.models.enums import UserRole
@@ -100,8 +104,18 @@ def get_workspace_service(
     return WorkspaceService(repository)
 
 
-def get_task_cache_service() -> TaskCacheService:
-    return TaskCacheService(redis_client=None)
+def get_redis_client(request: Request) -> Redis | None:
+    return getattr(request.app.state, "redis_client", None)
+
+
+def get_task_cache_service(
+    redis_client: Annotated[Redis | None, Depends(get_redis_client)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TaskCacheService:
+    return TaskCacheService(
+        redis_client=redis_client,
+        ttl_seconds=settings.task_cache_ttl_seconds,
+    )
 
 
 def get_project_repository(session: SessionDep) -> ProjectRepository:
@@ -170,37 +184,3 @@ def get_comment_service(
     return CommentService(
         repository, task_repository, project_repository, workspace_repository
     )
-
-
-__all__ = [
-    "AdminUserDep",
-    "AuthServiceDep",
-    "CurrentUserDep",
-    "SessionDep",
-    "Settings",
-    "UserServiceDep",
-    "bearer_scheme",
-    "get_auth_service",
-    "get_comment_repository",
-    "get_comment_service",
-    "get_current_user",
-    "get_db_session",
-    "get_email_service",
-    "get_label_repository",
-    "get_label_service",
-    "get_project_repository",
-    "get_project_service",
-    "get_refresh_token_repository",
-    "get_session",
-    "get_settings",
-    "get_task_cache_service",
-    "get_task_repository",
-    "get_task_service",
-    "get_user_repository",
-    "get_user_service",
-    "get_workspace_repository",
-    "get_workspace_service",
-    "require_roles",
-]
-
-get_db_session = get_session
