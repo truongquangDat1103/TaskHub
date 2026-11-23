@@ -11,6 +11,8 @@ from app.core.messages import NOT_AUTHENTICATED, PERMISSION_DENIED
 from app.db.session import get_session
 from app.models import User
 from app.models.enums import UserRole
+from app.repositories.comment import CommentRepository
+from app.repositories.label import LabelRepository
 from app.repositories.project import ProjectRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.task import TaskRepository
@@ -18,7 +20,9 @@ from app.repositories.user import UserRepository
 from app.repositories.workspace import WorkspaceRepository
 from app.services.auth import AuthService
 from app.services.cache import TaskCacheService
+from app.services.comment import CommentService
 from app.services.email import EmailService, get_email_service
+from app.services.label import LabelService
 from app.services.project import ProjectService
 from app.services.task import TaskService
 from app.services.user import UserService
@@ -129,6 +133,45 @@ def get_task_service(
     return TaskService(repository, workspace_repository, cache_service, email_service)
 
 
+def get_label_repository(session: SessionDep) -> LabelRepository:
+    return LabelRepository(session)
+
+
+def get_label_service(
+    repository: Annotated[LabelRepository, Depends(get_label_repository)],
+    project_repository: Annotated[ProjectRepository, Depends(get_project_repository)],
+    task_repository: Annotated[TaskRepository, Depends(get_task_repository)],
+    workspace_repository: Annotated[
+        WorkspaceRepository, Depends(get_workspace_repository)
+    ],
+    cache_service: Annotated[TaskCacheService, Depends(get_task_cache_service)],
+) -> LabelService:
+    return LabelService(
+        repository,
+        project_repository,
+        task_repository,
+        workspace_repository,
+        cache_service,
+    )
+
+
+def get_comment_repository(session: SessionDep) -> CommentRepository:
+    return CommentRepository(session)
+
+
+def get_comment_service(
+    repository: Annotated[CommentRepository, Depends(get_comment_repository)],
+    task_repository: Annotated[TaskRepository, Depends(get_task_repository)],
+    project_repository: Annotated[ProjectRepository, Depends(get_project_repository)],
+    workspace_repository: Annotated[
+        WorkspaceRepository, Depends(get_workspace_repository)
+    ],
+) -> CommentService:
+    return CommentService(
+        repository, task_repository, project_repository, workspace_repository
+    )
+
+
 __all__ = [
     "AdminUserDep",
     "AuthServiceDep",
@@ -138,9 +181,13 @@ __all__ = [
     "UserServiceDep",
     "bearer_scheme",
     "get_auth_service",
+    "get_comment_repository",
+    "get_comment_service",
     "get_current_user",
     "get_db_session",
     "get_email_service",
+    "get_label_repository",
+    "get_label_service",
     "get_project_repository",
     "get_project_service",
     "get_refresh_token_repository",
