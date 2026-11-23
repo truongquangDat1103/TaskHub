@@ -13,8 +13,10 @@ from app.models import User
 from app.models.enums import UserRole
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
+from app.repositories.workspace import WorkspaceRepository
 from app.services.auth import AuthService
 from app.services.user import UserService
+from app.services.workspace import WorkspaceService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session, scope="function")]
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -77,6 +79,17 @@ def require_roles(*roles: UserRole) -> Callable[[User], User]:
 
 AdminUserDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 
+
+def get_workspace_repository(session: SessionDep) -> WorkspaceRepository:
+    return WorkspaceRepository(session)
+
+
+def get_workspace_service(
+    repository: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+) -> WorkspaceService:
+    return WorkspaceService(repository)
+
+
 __all__ = [
     "AdminUserDep",
     "AuthServiceDep",
@@ -93,6 +106,8 @@ __all__ = [
     "get_settings",
     "get_user_repository",
     "get_user_service",
+    "get_workspace_repository",
+    "get_workspace_service",
     "require_roles",
 ]
 
